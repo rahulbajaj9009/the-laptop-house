@@ -1,0 +1,14 @@
+﻿@import "tailwindcss";
+
+@keyframes loginFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes loginPopIn { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

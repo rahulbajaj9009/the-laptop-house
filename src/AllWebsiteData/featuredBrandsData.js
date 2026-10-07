@@ -1,0 +1,92 @@
+﻿export const featuredBrands = [
+  {
+    id: "brand-hp",
+    name: "HP",
+    tagline: "Everyday laptops, made better",
+    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-lenovo",
+    name: "Lenovo",
+    tagline: "Smarter technology for all",
+    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-dell",
+    name: "Dell",
+    tagline: "Power your next big idea",
+    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-apple",
+    name: "Apple",
+    tagline: "A world of possibilities",
+    image: "https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-samsung",
+    name: "Samsung",
+    tagline: "Innovation that inspires",
+    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-asus",
+    name: "ASUS",
+    tagline: "In search of incredible",
+    image: "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-acer",
+    name: "Acer",
+    tagline: "Explore beyond limits",
+    image: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-logitech",
+    name: "Logitech",
+    tagline: "Designed for your next move",
+    image: "https://images.unsplash.com/photo-1527814050087-3793815479db?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-sony",
+    name: "Sony",
+    tagline: "Feel every moment",
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-jbl",
+    name: "JBL",
+    tagline: "Sound that moves you",
+    image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-boat",
+    name: "boAt",
+    tagline: "Plug into the good times",
+    image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-canon",
+    name: "Canon",
+    tagline: "Capture the moments that matter",
+    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-xiaomi",
+    name: "Xiaomi",
+    tagline: "Innovation for everyone",
+    image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-oneplus",
+    name: "OnePlus",
+    tagline: "Never settle",
+    image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=1000&q=85",
+  },
+  {
+    id: "brand-microsoft",
+    name: "Microsoft",
+    tagline: "Make what's next",
+    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1000&q=85",
+  },
+];
