@@ -4,7 +4,7 @@ import ProductCard from "../Allproduct/ProductCard.jsx";
 import { getPriceValue, getProductId, getProducts } from "../../AllWebsiteData/productData.js";
 
 const getBrandName = (product) => {
-  const brand = product.brand || product.brandName || product.manufacturer;
+  const brand = product.brand || product.brandName || product.companyName || product.manufacturer;
   return typeof brand === "object" ? brand?.name || brand?.title || "" : String(brand || "");
 };
 

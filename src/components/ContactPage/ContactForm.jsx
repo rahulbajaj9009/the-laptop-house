@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send, Laptop, CheckCircle, Navigation, MessageSquare } from 'lucide-react';
 
+const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "");
+
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -11,20 +13,31 @@ const Contact = () => {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
+    setError("");
+    try {
+      const response = await fetch(`${API_BASE}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: formData.name, mobile: formData.phone, email: formData.email, message: `Requirement: ${formData.service}\n${formData.message}` }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Your message could not be sent. Please try again.");
       setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 5000);
-    }, 800);
+      setFormData({ name: '', phone: '', email: '', service: 'New Laptop Purchase', message: '' });
+    } catch (requestError) {
+      setError(requestError.message || "Could not connect to the contact service.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleWhatsAppDirect = () => {
@@ -159,6 +172,7 @@ const Contact = () => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-5">
+                {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Name */}
                   <div>
@@ -210,7 +224,7 @@ const Contact = () => {
                   </div>
 
                   {/* Requirement Type */}
-                  <div>
+                  {/* <div>
                     <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                       Requirement Type
                     </label>
@@ -225,7 +239,7 @@ const Contact = () => {
                       <option value="RAM / SSD Upgrade">RAM / SSD Upgrade</option>
                       <option value="Accessories & Gaming Gear">Accessories & Gaming Gear</option>
                     </select>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Message */}

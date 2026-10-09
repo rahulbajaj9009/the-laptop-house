@@ -25,63 +25,30 @@ function getItems(payload) {
 }
 
 export async function getProducts({ category, signal } = {}) {
-  const query = category ? `?category=${encodeURIComponent(category)}` : "";
-  try {
-    const response = await fetch(`${API_BASE}/products${query}`, { signal });
-    if (!response.ok) throw new Error(`Products could not be loaded (${response.status}).`);
-    const products = getItems(await response.json());
-    if (products.length) return products;
-  } catch (error) {
-    if (error.name === "AbortError") throw error;
-  }
-
-  if (!category) return demoProducts;
-  const normalizedCategory = decodeURIComponent(category).toLowerCase().replace(/s$/, "");
-  const matchingDemos = demoProducts.filter((product) => product.category.toLowerCase().replace(/s$/, "") === normalizedCategory);
-  if (matchingDemos.length) return matchingDemos;
-
-  const categoryTitle = decodeURIComponent(category).replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-  return [{
-    id: `demo-${normalizedCategory}-sample`,
-    name: `${categoryTitle} Sample Product`,
-    brand: "Demo",
-    category: normalizedCategory,
-    price: 4999,
-    description: `Sample ${categoryTitle.toLowerCase()} product for the catalog preview.`,
-    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=85",
-  }];
+  const query = new URLSearchParams();
+  if (category) query.set("category", category);
+  const response = await fetch(`${API_BASE}/products${query.size ? `?${query}` : ""}`, { signal });
+  if (!response.ok) throw new Error(`Products could not be loaded (${response.status}).`);
+  return getItems(await response.json());
 }
 
-export async function getCategories({ products = [], signal } = {}) {
+export async function getCategories({ signal } = {}) {
   try {
     const response = await fetch(`${API_BASE}/categories`, { signal });
-    if (response.ok) {
-      const payload = await response.json();
-      const items = Array.isArray(payload) ? payload : payload?.categories || payload?.items || payload?.data;
-      if (Array.isArray(items)) {
-        const categories = items.map((item) => {
-          const name = typeof item === "string" ? item : item?.name || item?.title || item?.categoryName;
-          const path = typeof item === "string" ? item : item?.slug || item?.name || item?.title || item?.categoryName;
-          const icon = typeof item === "string" ? "" : item?.iconUrl || item?.icon || item?.imageUrl || item?.image || "";
-          return name && path ? { name: String(name).trim(), path: String(path).trim(), icon: typeof icon === "string" ? icon : "" } : null;
-        }).filter(Boolean);
-        if (categories.length) return categories;
-      }
-    }
+    if (!response.ok) return [];
+    const payload = await response.json();
+    const items = Array.isArray(payload) ? payload : payload?.categories || payload?.items || payload?.data;
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => {
+      const name = typeof item === "string" ? item : item?.name || item?.title || item?.categoryName;
+      const path = typeof item === "string" ? item : item?.slug || item?.name || item?.title || item?.categoryName;
+      const icon = typeof item === "string" ? "" : item?.iconUrl || item?.icon || item?.imageUrl || item?.image || "";
+      return name && path ? { name: String(name).trim(), path: String(path).trim(), icon: typeof icon === "string" ? icon : "" } : null;
+    }).filter(Boolean);
   } catch (error) {
     if (error.name === "AbortError") throw error;
+    return [];
   }
-
-  const uniqueCategories = new Map();
-  products.forEach((product) => {
-    const category = product?.category;
-    const categoryObject = category && typeof category === "object" ? category : null;
-    const name = product?.categoryName || categoryObject?.name || categoryObject?.title || (typeof category === "string" ? category : "");
-    const path = categoryObject?.slug || categoryObject?.name || categoryObject?.title || name;
-    const icon = categoryObject?.iconUrl || categoryObject?.icon || categoryObject?.imageUrl || categoryObject?.image || "";
-    if (name && path) uniqueCategories.set(String(path).toLowerCase(), { name: String(name).trim(), path: String(path).trim(), icon: typeof icon === "string" ? icon : "" });
-  });
-  return [...uniqueCategories.values()];
 }
 
 export function getProductId(product) {

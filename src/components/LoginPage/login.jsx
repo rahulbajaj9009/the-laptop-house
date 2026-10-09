@@ -10,7 +10,7 @@ export default function LoginModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const API_BASE = "http://localhost:5000/api"; // ← apna backend URL
+  const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "");
 
   useEffect(() => {
     let interval;

@@ -24,15 +24,6 @@ function getImages(product) {
   return [...new Set(candidates.map((image) => typeof image === "string" ? image : image?.url || image?.secure_url || image?.src || image?.path || "").filter(Boolean))].slice(0, 8);
 }
 
-function getSavedReviews(productId) {
-  try {
-    const reviews = JSON.parse(localStorage.getItem(`product-reviews-${productId}`) || "[]");
-    return Array.isArray(reviews) ? reviews : [];
-  } catch {
-    return [];
-  }
-}
-
 function Stars({ value, onChange, label }) {
   return (
     <div className="flex items-center gap-1" role={onChange ? "radiogroup" : "img"} aria-label={label || `${value} out of 5 stars`}>
@@ -60,6 +51,7 @@ export default function ProductDetail() {
   const { productId } = useParams();
   const [loadedProduct, setLoadedProduct] = useState({ id: null, product: null });
   const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
@@ -69,7 +61,7 @@ export default function ProductDetail() {
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
   const [inquirySent, setInquirySent] = useState(false);
-  const [reviews, setReviews] = useState(() => getSavedReviews(productId));
+  const [reviews, setReviews] = useState([]);
   const [reviewName, setReviewName] = useState("");
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
@@ -102,11 +94,27 @@ export default function ProductDetail() {
     const controller = new AbortController();
     setLoadedProduct({ id: null, product: null });
     setSelectedImage(0);
+    setSelectedColor("");
     setQuantity(1);
     setInquiryOpen(false);
-    setReviews(getSavedReviews(productId));
+    setReviews([]);
     getProducts({ signal: controller.signal })
-      .then((items) => setLoadedProduct({ id: productId, product: items.find((item) => getProductId(item) === productId) || null }))
+      .then(async (items) => {
+        const found = items.find((item) => getProductId(item) === productId) || null;
+        setLoadedProduct({ id: productId, product: found });
+        if (found) {
+          setSelectedColor(Array.isArray(found.colors) ? found.colors[0] || "" : "");
+          try {
+            const response = await fetch(`${API_BASE}/products/${encodeURIComponent(productId)}/reviews`, { signal: controller.signal });
+            if (response.ok) {
+              const saved = await response.json();
+              if (!controller.signal.aborted) setReviews(saved.map((review) => ({ name: review.user?.name || "Customer", text: review.comment, rating: review.rating, date: review.createdAt })));
+            }
+          } catch (error) {
+            if (error.name === "AbortError") throw error;
+          }
+        }
+      })
       .catch((error) => { if (error.name !== "AbortError") setLoadedProduct({ id: productId, product: null }); });
     return () => controller.abort();
   }, [productId]);
@@ -123,7 +131,7 @@ export default function ProductDetail() {
   const description = textValue(product.description || product.details || product.productDescription);
   const price = product.price ?? product.sellingPrice ?? product.selling_price ?? product.salePrice ?? product.productPrice;
   const mrp = product.mrp ?? product.MRP ?? product.mrpPrice ?? product.mrp_price ?? product.originalPrice ?? product.compareAtPrice;
-  const brand = textValue(product.brand || product.brandName || product.manufacturer);
+  const brand = textValue(product.brand || product.brandName || product.companyName || product.manufacturer);
   const tags = [product.tags, product.tag, product.material, product.color, product.size].map(textValue).filter(Boolean);
   const specificationRows = Object.entries(product.specifications || {}).filter(([, value]) => textValue(value));
   const averageRating = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0;
@@ -131,9 +139,9 @@ export default function ProductDetail() {
 
   const addProduct = () => {
     if (!isLoggedIn()) { requestLogin(); return; }
-    const previousQuantity = getCart().find((item) => getProductId(item.product) === getProductId(product))?.quantity || 0;
-    addToCart(product);
-    if (quantity > 1 || previousQuantity > 0) updateCartQuantity(getProductId(product), previousQuantity + quantity);
+    const previousQuantity = getCart().find((item) => getProductId(item.product) === getProductId(product) && (item.color || "") === selectedColor)?.quantity || 0;
+    addToCart(product, selectedColor);
+    if (quantity > 1 || previousQuantity > 0) updateCartQuantity(getProductId(product), previousQuantity + quantity, selectedColor);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1600);
   };
@@ -159,18 +167,24 @@ export default function ProductDetail() {
     }
   };
 
-  const submitReview = (event) => {
+  const submitReview = async (event) => {
     event.preventDefault();
     setReviewError("");
     if (!reviewName.trim() || !reviewText.trim()) { setReviewError("Please enter your name and review."); return; }
-    const nextReviews = [{ name: reviewName.trim(), text: reviewText.trim(), rating: reviewRating, date: new Date().toISOString() }, ...reviews];
+    if (!isLoggedIn()) { requestLogin(); setReviewError("Log in before submitting a review."); return; }
     try {
-      localStorage.setItem(`product-reviews-${productId}`, JSON.stringify(nextReviews));
-      setReviews(nextReviews);
+      const response = await fetch(`${API_BASE}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({ product: getProductId(product), rating: reviewRating, comment: reviewText.trim() }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || "Your review could not be submitted.");
       setReviewName("");
       setReviewText("");
       setReviewRating(5);
-    } catch { setReviewError("Your review could not be saved in this browser."); }
+      setReviewError("Your review was submitted and is awaiting approval.");
+    } catch (error) { setReviewError(error.message || "Your review could not be submitted."); }
   };
 
   return (
@@ -194,6 +208,7 @@ export default function ProductDetail() {
             <div className="flex items-start justify-between gap-4"><div>{brand && <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{brand}</p>}<h1 className="text-2xl font-medium text-slate-900 sm:text-3xl">{name}</h1></div><span className="mt-1 text-xs text-slate-500">{product.sku || product.productCode || ""}</span></div>
             {reviews.length > 0 && <div className="mt-3 flex items-center gap-2"><Stars value={Math.round(averageRating)} /><span className="text-xs text-slate-500">{averageRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})</span></div>}
             <div className="mt-4 flex flex-wrap items-center gap-3"><span className="text-2xl font-semibold text-slate-950">{formatPrice(price)}</span>{mrp != null && <span className="text-sm text-slate-500"><del>{formatPrice(mrp)}</del></span>}{mrp > Number(price) && <span className="text-sm font-medium text-emerald-700">Save {formatPrice(mrp - Number(price))}</span>}</div>
+            {Array.isArray(product.colors) && product.colors.length > 0 && <fieldset className="mt-5"><legend className="mb-2 text-sm font-medium text-slate-800">Color{selectedColor ? `: ${selectedColor}` : ""}</legend><div className="flex flex-wrap gap-2">{product.colors.map((color) => <button key={color} type="button" onClick={() => setSelectedColor(color)} aria-label={`Select color ${color}`} aria-pressed={selectedColor === color} title={color} className={`h-9 w-9 rounded-full border-2 transition ${selectedColor === color ? "border-blue-700 ring-2 ring-blue-200 ring-offset-2" : "border-slate-300 hover:border-slate-500"}`} style={{ backgroundColor: color }} />)}</div></fieldset>}
             {description && <p className="mt-4 line-clamp-4 text-sm leading-6 text-slate-600">{description}</p>}
             {(product.stock != null || product.quantity != null) && <p className="mt-3 text-xs font-medium text-emerald-700">{Number(product.stock ?? product.quantity) > 0 ? "In stock and ready to ship" : "Currently out of stock"}</p>}
 
@@ -221,7 +236,7 @@ export default function ProductDetail() {
             <div><label className="mb-1.5 block text-xs text-slate-600">Your rating <span className="text-red-600">*</span></label><Stars value={reviewRating} onChange={setReviewRating} /></div>
             <label className="block text-xs text-slate-600">Your review <span className="text-red-600">*</span><textarea required rows={4} value={reviewText} onChange={(event) => setReviewText(event.target.value)} className="mt-2 w-full border border-slate-300 p-3 text-sm outline-none focus:border-slate-600" /></label>
             <div className="grid gap-4 sm:grid-cols-2"><label className="block text-xs text-slate-600">Name <span className="text-red-600">*</span><input required value={reviewName} onChange={(event) => setReviewName(event.target.value)} className="mt-2 w-full border border-slate-300 p-3 text-sm outline-none focus:border-slate-600" /></label><label className="block text-xs text-slate-600">Email <span className="text-slate-400">(optional)</span><input type="email" className="mt-2 w-full border border-slate-300 p-3 text-sm outline-none focus:border-slate-600" /></label></div>
-            {reviewError && <p role="alert" className="text-sm text-red-700">{reviewError}</p>}
+            {reviewError && <p role="alert" className={`text-sm ${reviewError.includes("awaiting approval") ? "text-emerald-700" : "text-red-700"}`}>{reviewError}</p>}
             <button type="submit" className="bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700">Submit review</button>
           </form>
         </section>

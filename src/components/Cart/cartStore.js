@@ -18,28 +18,31 @@ function saveCart(cart) {
   return cart;
 }
 
-export function addToCart(product) {
+export function getCartLineId(item) {
+  return `${getProductId(item?.product || item)}::${item?.color || ''}`;
+}
+
+export function addToCart(product, color = product?.colors?.[0] || '') {
   if (!isLoggedIn()) return null;
   const id = getProductId(product);
   const cart = getCart();
-  const existing = cart.find((item) => getProductId(item.product) === id);
+  const existing = cart.find((item) => getProductId(item.product) === id && (item.color || '') === color);
   if (existing) existing.quantity += 1;
-  else cart.push({ product, quantity: 1 });
+  else cart.push({ product, color, quantity: 1 });
   return saveCart(cart);
 }
 
-export function updateCartQuantity(id, quantity) {
+export function updateCartQuantity(id, quantity, color) {
   const cart = getCart()
-    .map((item) => getProductId(item.product) === String(id) ? { ...item, quantity } : item)
+    .map((item) => getProductId(item.product) === String(id) && (color === undefined || (item.color || '') === color) ? { ...item, quantity } : item)
     .filter((item) => item.quantity > 0);
   return saveCart(cart);
 }
 
-export function removeFromCart(id) {
-  return saveCart(getCart().filter((item) => getProductId(item.product) !== String(id)));
+export function removeFromCart(id, color) {
+  return saveCart(getCart().filter((item) => getProductId(item.product) !== String(id) || (color !== undefined && (item.color || '') !== color)));
 }
 
 export function getCartItemCount(cart = getCart()) {
   return cart.reduce((count, item) => count + item.quantity, 0);
 }
-

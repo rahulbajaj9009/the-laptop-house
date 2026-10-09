@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, CreditCard, LoaderCircle, LockKeyhole, MapPin, ShoppingBag, Truck } from "lucide-react";
 import { formatPrice, getPriceValue, getProductId, getProductImage } from "../../AllWebsiteData/productData.js";
-import { getCart } from "../Cart/cartStore.js";
+import { getCart, getCartLineId } from "../Cart/cartStore.js";
 import { isLoggedIn, requestLogin } from "../LoginPage/loginRequired.js";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/$/, "");
@@ -68,7 +68,7 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       const orderPayload = {
-        items: cart.map(({ product, quantity }) => ({ productId: getProductId(product), quantity })),
+        items: cart.map(({ product, quantity, color }) => ({ productId: getProductId(product), quantity, color })),
         shippingAddress: shipping,
         note,
       };
@@ -216,9 +216,9 @@ export default function CheckoutPage() {
           <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-6">
             <h2 className="text-lg font-bold text-slate-900">Order summary</h2>
             <div className="mt-4 max-h-72 space-y-4 overflow-y-auto border-b border-slate-100 pb-4">
-              {cart.map(({ product, quantity }) => <div key={getProductId(product)} className="flex items-center gap-3">
+              {cart.map(({ product, quantity, color }) => <div key={getCartLineId({ product, color })} className="flex items-center gap-3">
                 <div className="relative h-14 w-14 shrink-0 rounded-lg bg-slate-50 p-1"><img src={getProductImage(product)} alt="" className="h-full w-full object-contain" /><span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-700 px-1 text-[10px] font-bold text-white">{quantity}</span></div>
-                <div className="min-w-0 flex-1"><p className="line-clamp-2 text-sm font-medium text-slate-800">{product.name || product.title || "Product"}</p><p className="mt-1 text-xs text-slate-500">{formatPrice(product.price ?? product.sellingPrice ?? product.salePrice)}</p></div>
+                <div className="min-w-0 flex-1"><p className="line-clamp-2 text-sm font-medium text-slate-800">{product.name || product.title || "Product"}</p>{color && <p className="mt-1 text-xs text-slate-500">Color: {color}</p>}<p className="mt-1 text-xs text-slate-500">{formatPrice(product.price ?? product.sellingPrice ?? product.salePrice)}</p></div>
                 <span className="text-sm font-semibold text-slate-900">{formatPrice(getPriceValue(product.price ?? product.sellingPrice ?? product.salePrice) * quantity)}</span>
               </div>)}
             </div>

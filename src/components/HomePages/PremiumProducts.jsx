@@ -4,57 +4,43 @@ import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import ProductCard from "../Allproduct/ProductCard.jsx";
 import { getProductId, getProducts } from "../../AllWebsiteData/productData.js";
-import { premiumProducts as dummyPremiumProducts } from "../../AllWebsiteData/premiumProductsData.js";
 import "swiper/css";
-
-const normalize = (value) => {
-  if (value && typeof value === "object") {
-    return normalize(value.name || value.title || value.slug || "");
-  }
-  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-};
-
-const isPremiumProduct = (product) => {
-  const categories = [
-    product.category,
-    product.categoryName,
-    product.section,
-    ...(Array.isArray(product.categories) ? product.categories : []),
-    ...(Array.isArray(product.tags) ? product.tags : []),
-  ];
-  const hasPremiumCategory = categories.some((value) => {
-    const category = normalize(value);
-    return category === "premium" || category === "premiumproduct" || category === "premiumproducts";
-  });
-  return hasPremiumCategory || product.isPremium === true || product.isPremiumProduct === true || product.premium === true;
-};
 
 const premiumOfferImage = "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=90";
 
 export default function PremiumProducts() {
   const swiperRef = useRef(null);
-  const [products, setProducts] = useState(dummyPremiumProducts.slice(0, 10));
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
-
-    getProducts({ signal: controller.signal })
+    let mounted = true;
+    const loadProducts = () => getProducts({ signal: controller.signal })
       .then((catalog) => {
-        const premium = (Array.isArray(catalog) ? catalog : []).filter(isPremiumProduct);
-        setProducts((premium.length ? premium : dummyPremiumProducts).slice(0, 10));
+        if (!mounted) return;
+        const premium = (Array.isArray(catalog) ? catalog : []).filter((product) => product.isPremium === true);
+        setProducts(premium.slice(0, 10));
+        setError("");
       })
       .catch((loadError) => {
-        if (loadError.name !== "AbortError") {
+        if (mounted && loadError.name !== "AbortError") {
           setError(loadError.message || "Premium products could not be loaded.");
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (mounted) setLoading(false);
       });
-
-    return () => controller.abort();
+    loadProducts();
+    const refreshTimer = window.setInterval(loadProducts, 30_000);
+    window.addEventListener("focus", loadProducts);
+    return () => {
+      mounted = false;
+      controller.abort();
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", loadProducts);
+    };
   }, []);
 
   return (

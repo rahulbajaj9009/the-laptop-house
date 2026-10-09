@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { getCart, removeFromCart, updateCartQuantity } from "./cartStore.js";
+import { getCart, getCartLineId, removeFromCart, updateCartQuantity } from "./cartStore.js";
 import { formatPrice, getPriceValue, getProductId, getProductImage } from "../../AllWebsiteData/productData.js";
 
 export default function CartPage() {
   const [cart, setCart] = useState(getCart);
   const subtotal = cart.reduce((total, item) => total + getPriceValue(item.product.price) * item.quantity, 0);
 
-  const changeQuantity = (product, quantity) => setCart(updateCartQuantity(getProductId(product), quantity));
-  const removeItem = (product) => setCart(removeFromCart(getProductId(product)));
+  const changeQuantity = (product, color, quantity) => setCart(updateCartQuantity(getProductId(product), quantity, color));
+  const removeItem = (product, color) => setCart(removeFromCart(getProductId(product), color));
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-8">
@@ -26,27 +26,29 @@ export default function CartPage() {
         ) : (
           <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_340px]">
             <section className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white px-4 shadow-sm sm:px-6">
-              {cart.map(({ product, quantity }) => {
+              {cart.map(({ product, quantity, color }) => {
                 const id = getProductId(product);
+                const lineId = getCartLineId({ product, color });
                 const name = product.name || product.title || "Product";
                 const image = getProductImage(product);
                 return (
-                  <article key={id} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center">
+                  <article key={lineId} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center">
                     <Link to={`/product/${encodeURIComponent(id)}`} className="flex h-28 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 sm:w-32">
                       {image ? <img src={image} alt={name} className="h-full w-full object-cover" /> : <span className="text-xs text-slate-400">Image unavailable</span>}
                     </Link>
                     <div className="min-w-0 flex-1">
                       <Link to={`/product/${encodeURIComponent(id)}`} className="font-semibold text-slate-900 hover:text-blue-700">{name}</Link>
                       {product.brand && <p className="mt-1 text-xs font-semibold uppercase text-blue-600">{product.brand}</p>}
+                      {color && <p className="mt-1 flex items-center gap-2 text-xs text-slate-600"><span className="h-3.5 w-3.5 rounded-full border border-slate-300" style={{ backgroundColor: color }} />Selected color: {color}</p>}
                       <p className="mt-2 font-bold text-slate-900">{formatPrice(product.price)}</p>
                     </div>
                     <div className="flex items-center justify-between gap-4 sm:justify-end">
                       <div className="flex items-center rounded-lg border border-slate-200">
-                        <button type="button" onClick={() => changeQuantity(product, quantity - 1)} aria-label={`Decrease ${name} quantity`} className="p-2 text-slate-600 hover:text-blue-700"><Minus size={16} /></button>
+                        <button type="button" onClick={() => changeQuantity(product, color, quantity - 1)} aria-label={`Decrease ${name} quantity`} className="p-2 text-slate-600 hover:text-blue-700"><Minus size={16} /></button>
                         <span className="min-w-8 text-center text-sm font-semibold">{quantity}</span>
-                        <button type="button" onClick={() => changeQuantity(product, quantity + 1)} aria-label={`Increase ${name} quantity`} className="p-2 text-slate-600 hover:text-blue-700"><Plus size={16} /></button>
+                        <button type="button" onClick={() => changeQuantity(product, color, quantity + 1)} aria-label={`Increase ${name} quantity`} className="p-2 text-slate-600 hover:text-blue-700"><Plus size={16} /></button>
                       </div>
-                      <button type="button" onClick={() => removeItem(product)} aria-label={`Remove ${name} from cart`} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={18} /></button>
+                      <button type="button" onClick={() => removeItem(product, color)} aria-label={`Remove ${name} from cart`} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={18} /></button>
                     </div>
                   </article>
                 );
@@ -65,4 +67,3 @@ export default function CartPage() {
     </main>
   );
 }
-

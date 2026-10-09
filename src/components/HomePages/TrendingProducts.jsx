@@ -2,32 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "../Allproduct/ProductCard.jsx";
 import { getProductId, getProducts } from "../../AllWebsiteData/productData.js";
-import { trendingProducts as dummyTrendingProducts } from "../../AllWebsiteData/trendingProductsData.js";
-
-const normalize = (value) => {
-  if (value && typeof value === "object") {
-    return normalize(value.name || value.title || value.slug || "");
-  }
-  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-};
-
-const isTrending = (product) => {
-  const categoryValues = [
-    product.category,
-    product.categoryName,
-    product.section,
-    ...(Array.isArray(product.categories) ? product.categories : []),
-    ...(Array.isArray(product.tags) ? product.tags : []),
-  ];
-  return product.isTrending === true || product.trending === true || categoryValues.some((value) => {
-    const category = normalize(value);
-    return category === "trending" || category === "trendingnow";
-  });
-};
 
 export default function TrendingProducts() {
   const scrollRef = useRef(null);
-  const [products, setProducts] = useState(dummyTrendingProducts.slice(0, 10));
+  const [products, setProducts] = useState([]);
 
   const scroll = (direction) => {
     const list = scrollRef.current;
@@ -36,15 +14,24 @@ export default function TrendingProducts() {
 
   useEffect(() => {
     const controller = new AbortController();
-
-    getProducts({ signal: controller.signal })
+    let mounted = true;
+    const loadProducts = () => getProducts({ signal: controller.signal })
       .then((catalog) => {
-        const adminTrendingProducts = (Array.isArray(catalog) ? catalog : []).filter(isTrending);
-        if (adminTrendingProducts.length) setProducts(adminTrendingProducts.slice(0, 10));
+        if (!mounted) return;
+        const adminTrendingProducts = (Array.isArray(catalog) ? catalog : []).filter((product) => product.isTrending === true);
+        setProducts(adminTrendingProducts.slice(0, 10));
       })
-      .catch(() => {});
+      .catch(() => { if (mounted && !controller.signal.aborted) setProducts([]); });
+    loadProducts();
+    const refreshTimer = window.setInterval(loadProducts, 30_000);
+    window.addEventListener("focus", loadProducts);
 
-    return () => controller.abort();
+    return () => {
+      mounted = false;
+      controller.abort();
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", loadProducts);
+    };
   }, []);
 
   return (
@@ -64,7 +51,7 @@ export default function TrendingProducts() {
           </div>
         </div>
 
-        <div ref={scrollRef} className="flex touch-pan-x snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-1 sm:gap-4" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
+        {products.length === 0 ? <p className="rounded-xl bg-white/80 px-4 py-8 text-center text-slate-700">No trending products are available right now.</p> : <div ref={scrollRef} className="flex touch-pan-x snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-1 sm:gap-4" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}>
           {products.slice(0, 10).map((product, index) => (
             <div key={getProductId(product) || `trending-${index}`} className="h-[280px] min-w-0 shrink-0 snap-start flex-[0_0_78%] sm:h-[310px] sm:flex-[0_0_44%] lg:h-[330px] lg:flex-[0_0_30%] xl:flex-[0_0_22%] 2xl:h-[350px] 2xl:flex-[0_0_19%]">
               <ProductCard
@@ -77,7 +64,7 @@ export default function TrendingProducts() {
               />
             </div>
           ))}
-        </div>
+        </div>}
       </div>
     </section>
   );

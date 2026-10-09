@@ -80,7 +80,7 @@ export default function ProductCard({
       </div>
 
       <div className={`shrink-0 px-2 pb-1 pt-3 transition-opacity duration-200 ${revealDetailsOnHover ? "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100" : "opacity-100"}`}>
-        {product.brand && <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-blue-700">{product.brand}</p>}
+        {(product.brand || product.brandName || product.companyName) && <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-blue-700">{product.brand || product.brandName || product.companyName}</p>}
         <Link to={`/product/${encodeURIComponent(id)}`} className="block focus:outline-none focus-visible:underline">
           <h3 title={name} className="block truncate text-center text-base font-medium tracking-wide text-slate-800 sm:text-lg">{name}</h3>
         </Link>

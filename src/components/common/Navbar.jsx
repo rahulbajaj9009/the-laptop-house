@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import logo from "../../assets/images/logo.png";
+import logo from "../../assets/images/logo.jpg";
 
-import {
+import {              
   Search,
   User,
   ChevronDown,
@@ -47,23 +47,6 @@ const categoryIcons = {
   usb: Usb,
   processor: Cpu,
 };
-
-const defaultCategories = [
-  "Laptop",
-  "Tablet",
-  "Mobile",
-  "Mouse",
-  "Keyboard",
-  "Headphone",
-  "Smartwatch",
-  "Speaker",
-  "Monitor",
-  "Gaming",
-  "Charger",
-  "Cable",
-  "Pendrive",
-  "Processor",
-].map((name) => ({ name, path: name.toLowerCase(), icon: "" }));
 
 export default function Navbar() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -113,16 +96,29 @@ export default function Navbar() {
   useEffect(() => {
     const controller = new AbortController();
     getProducts({ signal: controller.signal })
-      .then((products) => {
-        setSearchCatalog(products);
-        return getCategories({ products, signal: controller.signal });
-      })
-      .then(setCategoryCatalog)
+      .then(setSearchCatalog)
       .catch(() => setSearchCatalog([]))
       .finally(() => {
         if (!controller.signal.aborted) setSearchCatalogLoading(false);
       });
     return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadCategories = () => {
+      getCategories({ signal: controller.signal })
+        .then(setCategoryCatalog)
+        .catch(() => { if (!controller.signal.aborted) setCategoryCatalog([]); });
+    };
+    loadCategories();
+    const refreshTimer = window.setInterval(loadCategories, 30_000);
+    window.addEventListener("focus", loadCategories);
+    return () => {
+      controller.abort();
+      window.clearInterval(refreshTimer);
+      window.removeEventListener("focus", loadCategories);
+    };
   }, []);
 
   useEffect(() => {
@@ -153,12 +149,7 @@ export default function Navbar() {
   const searchMatches = searchQuery.trim().length >= 2
     ? searchCatalog.filter((product) => matchesProductQuery(product, searchQuery)).slice(0, 6)
     : [];
-  const categories = [...new Map(
-    [...defaultCategories, ...categoryCatalog].map((category) => [
-      category.path.toLowerCase().replace(/s$/, ""),
-      category,
-    ]),
-  ).values()];
+  const categories = categoryCatalog;
 
   const submitSearch = (event) => {
     event.preventDefault();
@@ -178,7 +169,7 @@ export default function Navbar() {
               <img
                 src={logo}
                 alt="The Laptop House"
-                className="h-12 w-auto object-contain sm:h-14 transition-transform duration-300 group-hover:scale-105"
+                className="h-20 w-auto object-contain sm:h-15 transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
 
@@ -295,7 +286,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="border-t border-gray-100 bg-slate-100 py-3">
+        {categories.length > 0 && <div className="border-t border-gray-100 bg-slate-100 py-3">
           <nav aria-label="Product categories" className="mx-3 w-auto overflow-x-auto rounded-md border border-slate-200 bg-white px-3 shadow-sm sm:mx-4 sm:px-4 scrollbar-hide">
             <div className="flex min-w-max items-stretch justify-between lg:min-w-0">
               {categories.map((cat) => {
@@ -324,11 +315,10 @@ export default function Navbar() {
               })}
             </div>
           </nav>
-        </div>
+        </div>}
       </div>
 
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
     </>
   );
 }
-
